@@ -1,0 +1,16 @@
+.social-icon {
+  @apply w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-gray-300 hover:bg-blue-600 hover:text-white transition-all duration-300;
+}
+
+.footer-link {
+  @apply relative transition-all duration-300;
+
+  &::before {
+    content: '›';
+    @apply absolute -left-4 text-yellow-400 opacity-0 transition-all duration-300;
+  }
+
+  &:hover::before {
+    @apply opacity-100;
+  }
+}
