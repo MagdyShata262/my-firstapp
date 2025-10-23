@@ -7,13 +7,17 @@ import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { provideRouterStore, routerReducer } from '@ngrx/router-store';
 
 import { routes } from './app.routes';
+import { provideHttpClient, withFetch } from '@angular/common/http';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     provideClientHydration(),
-
+    provideHttpClient(
+      withFetch() // استخدام fetch API بدلاً من XMLHttpRequest (اختياري)
+      // withInterceptors([]) // يمكنك إضافة interceptors هنا إذا احتجت
+    ),
     // تكوين NgRx
     provideStore({
       router: routerReducer,
