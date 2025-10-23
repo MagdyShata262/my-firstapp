@@ -1,1 +1,62 @@
-<p>product-details works!</p>
+<!-- في قسم أزرار العمل - محسّن -->
+<div class="flex flex-col sm:flex-row gap-4 pt-6">
+  <!-- زر إضافة إلى السلة -->
+  <button
+    (click)="addToCart()"
+    [disabled]="!product()"
+    class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 px-6 rounded-xl font-semibold hover:from-green-600 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl active:scale-95 flex items-center justify-center gap-2 group"
+    aria-label="Add product to shopping cart"
+  >
+    <span class="text-lg transition-transform group-hover:scale-110">🛒</span>
+    <span class="font-medium">Add to Cart</span>
+  </button>
+
+  <!-- زر تعديل المنتج -->
+  <button
+    (click)="editProduct()"
+    [disabled]="!product()"
+    class="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-4 px-6 rounded-xl font-semibold hover:from-blue-600 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl active:scale-95 flex items-center justify-center gap-2 group"
+    aria-label="Edit product details"
+  >
+    <span class="text-lg transition-transform group-hover:scale-110">✏️</span>
+    <span class="font-medium">Edit Product</span>
+  </button>
+
+  <!-- زر المشاركة -->
+  <button
+    (click)="shareProduct()"
+    [disabled]="!product()"
+    class="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-4 px-6 rounded-xl font-semibold hover:from-indigo-600 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl active:scale-95 flex items-center justify-center gap-2 group"
+    aria-label="Share product"
+  >
+    <span class="text-lg transition-transform group-hover:scale-110">📤</span>
+    <span class="font-medium">Share</span>
+  </button>
+</div>
+
+<!-- زر المفضلة الإضافي -->
+<div class="flex justify-center mt-4" *ngIf="product()">
+  <button
+    (click)="toggleFavorite()"
+    [class.text-red-500]="isFavorite()"
+    [class.text-gray-400]="!isFavorite()"
+    class="p-3 rounded-full hover:bg-gray-100 transition-all duration-300 group"
+    aria-label="Toggle favorite"
+  >
+    <svg
+      class="w-6 h-6 transition-transform group-hover:scale-110"
+      [class.fill-current]="isFavorite()"
+      [class.stroke-current]="!isFavorite()"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+      />
+    </svg>
+  </button>
+</div>

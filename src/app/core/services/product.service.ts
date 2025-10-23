@@ -28,13 +28,17 @@ export class ProductService {
         timeout(10000),
         retry(2),
         catchError((error) =>
-          this.handleError('Failed to load products', error)
+          this.handleError('Failed to load products', error, [])
         )
       );
   }
 
   // GET: Get a single product
   getProductById(id: number): Observable<Product> {
+    if (!id || id <= 0) {
+      return throwError(() => new Error('Invalid product ID'));
+    }
+
     return this.http.get<Product>(`${this.baseUrl}/products/${id}`).pipe(
       timeout(5000),
       retry(2),
@@ -44,12 +48,17 @@ export class ProductService {
 
   // GET: Get products by category
   getProductsByCategory(category: string): Observable<Product[]> {
+    if (!category.trim()) {
+      return throwError(() => new Error('Category is required'));
+    }
+
     return this.http
       .get<Product[]>(`${this.baseUrl}/products/category/${category}`)
       .pipe(
         timeout(10000),
+        retry(2),
         catchError((error) =>
-          this.handleError('Failed to load products by category', error)
+          this.handleError('Failed to load products by category', error, [])
         )
       );
   }
@@ -67,18 +76,28 @@ export class ProductService {
 
   // POST: Add a new product
   addProduct(product: Omit<Product, 'id'>): Observable<Product> {
+    if (!this.isValidProduct(product)) {
+      return throwError(() => new Error('Invalid product data'));
+    }
+
     return this.http.post<Product>(`${this.baseUrl}/products`, product).pipe(
       timeout(5000),
+      retry(2),
       catchError((error) => this.handleError('Failed to add product', error))
     );
   }
 
   // PUT: Update a product
   updateProduct(id: number, product: Partial<Product>): Observable<Product> {
+    if (!id || id <= 0) {
+      return throwError(() => new Error('Invalid product ID'));
+    }
+
     return this.http
       .put<Product>(`${this.baseUrl}/products/${id}`, product)
       .pipe(
         timeout(5000),
+        retry(2),
         catchError((error) =>
           this.handleError('Failed to update product', error)
         )
@@ -86,11 +105,35 @@ export class ProductService {
   }
 
   // DELETE: Delete a product
-  deleteProduct(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/products/${id}`).pipe(
+  deleteProduct(id: number): Observable<boolean> {
+    if (!id || id <= 0) {
+      return throwError(() => new Error('Invalid product ID'));
+    }
+
+    return this.http.delete<boolean>(`${this.baseUrl}/products/${id}`).pipe(
       timeout(5000),
-      catchError((error) => this.handleError('Failed to delete product', error))
+      retry(2),
+      map(() => true), // Convert to boolean
+      catchError((error) =>
+        this.handleError('Failed to delete product', error, false)
+      )
     );
+  }
+
+  // PATCH: Partial update (if supported by API)
+  patchProduct(id: number, updates: Partial<Product>): Observable<Product> {
+    if (!id || id <= 0) {
+      return throwError(() => new Error('Invalid product ID'));
+    }
+
+    return this.http
+      .patch<Product>(`${this.baseUrl}/products/${id}`, updates)
+      .pipe(
+        timeout(5000),
+        catchError((error) =>
+          this.handleError('Failed to partially update product', error)
+        )
+      );
   }
 
   // البحث في المنتجات (عميل)
@@ -99,11 +142,12 @@ export class ProductService {
       return products;
     }
 
+    const searchTerm = query.toLowerCase();
     return products.filter(
       (product) =>
-        product.title.toLowerCase().includes(query.toLowerCase()) ||
-        product.description.toLowerCase().includes(query.toLowerCase()) ||
-        product.category.toLowerCase().includes(query.toLowerCase())
+        product.title.toLowerCase().includes(searchTerm) ||
+        product.description.toLowerCase().includes(searchTerm) ||
+        product.category.toLowerCase().includes(searchTerm)
     );
   }
 
@@ -116,6 +160,8 @@ export class ProductService {
     return [...products].sort((a, b) => {
       const aValue = a[sortBy];
       const bValue = b[sortBy];
+
+      if (aValue == null || bValue == null) return 0;
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
         return ascending
@@ -138,6 +184,7 @@ export class ProductService {
     averagePrice: number;
     highestPrice: number;
     lowestPrice: number;
+    totalValue: number;
   } {
     if (products.length === 0) {
       return {
@@ -146,19 +193,21 @@ export class ProductService {
         averagePrice: 0,
         highestPrice: 0,
         lowestPrice: 0,
+        totalValue: 0,
       };
     }
 
     const categories = new Set(products.map((p) => p.category));
     const prices = products.map((p) => p.price);
+    const totalValue = prices.reduce((sum, price) => sum + price, 0);
 
     return {
       total: products.length,
       categoriesCount: categories.size,
-      averagePrice:
-        prices.reduce((sum, price) => sum + price, 0) / products.length,
+      averagePrice: Number((totalValue / products.length).toFixed(2)),
       highestPrice: Math.max(...prices),
       lowestPrice: Math.min(...prices),
+      totalValue: Number(totalValue.toFixed(2)),
     };
   }
 
@@ -168,19 +217,51 @@ export class ProductService {
     return [...new Set(categories)].sort();
   }
 
-  // معالجة الأخطاء
+  // التحقق من صحة بيانات المنتج
+  private isValidProduct(product: Omit<Product, 'id'>): boolean {
+    return !!(
+      product.title?.trim() &&
+      product.description?.trim() &&
+      product.category?.trim() &&
+      product.image?.trim() &&
+      product.price > 0
+    );
+  }
+
+  // معالجة الأخطاء محسنة
   private handleError(
     message: string,
     error: any,
     fallbackValue?: any
-  ): Observable<never> {
+  ): Observable<any> {
     console.error('ProductService Error:', error);
 
     let errorMessage = message;
+
     if (error instanceof HttpErrorResponse) {
-      errorMessage += `: ${error.status} - ${error.message}`;
+      switch (error.status) {
+        case 0:
+          errorMessage += ': Network error - Please check your connection';
+          break;
+        case 404:
+          errorMessage += ': Resource not found';
+          break;
+        case 500:
+          errorMessage += ': Server error - Please try again later';
+          break;
+        default:
+          errorMessage += `: ${error.status} - ${error.message}`;
+      }
     } else if (error.name === 'TimeoutError') {
-      errorMessage += ': Request timeout';
+      errorMessage += ': Request timeout - Please try again';
+    } else {
+      errorMessage += `: ${error.message || 'Unknown error'}`;
+    }
+
+    // إذا كان هناك قيمة بديلة، ارجعها بدلاً من خطأ
+    if (fallbackValue !== undefined) {
+      console.warn('Returning fallback value due to error:', errorMessage);
+      return of(fallbackValue);
     }
 
     return throwError(() => new Error(errorMessage));

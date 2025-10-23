@@ -1,0 +1,200 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+
+  // تحسينات الأداء
+  contain: layout style paint;
+  isolation: isolate;
+}
+
+// تحسينات للصور
+.product-image {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: scale(1.05);
+    filter: brightness(1.05);
+  }
+
+  // تحسينات التحميل
+  &.loading {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+  }
+}
+
+// تحسينات للبطاقات مع تأثيرات زجاجية متقدمة
+.card-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 8px 32px 0 rgba(31, 38, 135, 0.07),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+
+  &:hover {
+    box-shadow:
+      0 12px 40px 0 rgba(31, 38, 135, 0.12),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+    transform: translateY(-2px);
+  }
+}
+
+// تأثيرات تحميل
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+// تحسينات للأزرار مع تأثيرات متقدمة
+.btn {
+  @apply relative overflow-hidden font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-opacity-50;
+
+  // تأثير النبض للتفاعل
+  &:active {
+    animation: pulse 0.3s ease;
+  }
+
+  // تأثير اللمعان عند التمرير
+  &::before {
+    content: '';
+    @apply absolute inset-0 transform -translate-x-full;
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent);
+    transition: transform 0.6s;
+  }
+
+  &:hover::before {
+    transform: translateX(100%);
+  }
+}
+
+.btn-primary {
+  @extend .btn;
+  @apply bg-gradient-to-r from-blue-600 to-purple-700 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 focus:ring-blue-500;
+
+  &:hover {
+    @apply from-blue-700 to-purple-800;
+    box-shadow:
+      0 12px 25px -5px rgba(59, 130, 246, 0.3),
+      0 8px 10px -6px rgba(59, 130, 246, 0.2);
+  }
+}
+
+.btn-secondary {
+  @extend .btn;
+  @apply bg-white text-gray-800 px-6 py-3 rounded-lg border border-gray-300 shadow-md hover:shadow-lg transform hover:-translate-y-1 focus:ring-gray-500;
+
+  &:hover {
+    @apply bg-gray-50 border-gray-400;
+  }
+}
+
+.btn-success {
+  @extend .btn;
+  @apply bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 focus:ring-green-500;
+
+  &:hover {
+    @apply from-green-600 to-emerald-700;
+  }
+}
+
+// تأثير النبض
+@keyframes pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(0.98);
+  }
+}
+
+// تحسينات للتجاوب
+@media (max-width: 640px) {
+  .mobile-optimized {
+    .btn {
+      @apply py-4 text-base;
+    }
+
+    .card-glass {
+      margin: 0.5rem;
+      border-radius: 0.75rem;
+    }
+  }
+}
+
+// تحسينات للوصولية
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// تحسينات للظلال والتدرجات
+.gradient-overlay {
+  &::after {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    background: linear-gradient(to bottom,
+        transparent 0%,
+        rgba(0, 0, 0, 0.01) 20%,
+        rgba(0, 0, 0, 0.03) 100%);
+  }
+}
+
+// تحسينات للتفاعلات
+.interactive-element {
+  @apply cursor-pointer transition-all duration-200;
+
+  &:focus-visible {
+    @apply outline-none ring-4 ring-blue-500 ring-opacity-50;
+  }
+}
+
+// تحسينات للخطوط
+.font-smoothing {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// تحسينات للحدود
+.border-glow {
+  box-shadow:
+    0 0 0 1px rgba(59, 130, 246, 0.1),
+    0 0 20px rgba(59, 130, 246, 0.05);
+
+  &:hover {
+    box-shadow:
+      0 0 0 1px rgba(59, 130, 246, 0.2),
+      0 0 30px rgba(59, 130, 246, 0.1);
+  }
+}
