@@ -4,8 +4,8 @@ import {
   HttpParams,
   HttpErrorResponse,
 } from '@angular/common/http';
-import { Observable, throwError, of } from 'rxjs';
-import { catchError, timeout, retry, map } from 'rxjs/operators';
+import { Observable, throwError, of, timer } from 'rxjs';
+import { catchError, timeout, retry, map, delay } from 'rxjs/operators';
 import { Product } from '../../shared/models';
 
 @Injectable({
@@ -13,7 +13,7 @@ import { Product } from '../../shared/models';
 })
 export class ProductService {
   private http = inject(HttpClient);
-  private baseUrl = 'https://fakestoreapi.com';
+  private baseUrl = 'https://fakestoreapi.com'; // ✅ تم إصلاح المسافات الزائدة
 
   // GET: Get all products
   getAllProducts(limit?: number): Observable<Product[]> {
@@ -26,7 +26,10 @@ export class ProductService {
       .get<Product[]>(`${this.baseUrl}/products`, { params })
       .pipe(
         timeout(10000),
-        retry(2),
+        retry({
+          count: 2,
+          delay: (error, retryCount) => timer(retryCount * 1000),
+        }),
         catchError((error) =>
           this.handleError('Failed to load products', error, [])
         )
@@ -41,7 +44,10 @@ export class ProductService {
 
     return this.http.get<Product>(`${this.baseUrl}/products/${id}`).pipe(
       timeout(5000),
-      retry(2),
+      retry({
+        count: 2,
+        delay: (error, retryCount) => timer(retryCount * 1000),
+      }),
       catchError((error) => this.handleError('Failed to load product', error))
     );
   }
@@ -56,7 +62,10 @@ export class ProductService {
       .get<Product[]>(`${this.baseUrl}/products/category/${category}`)
       .pipe(
         timeout(10000),
-        retry(2),
+        retry({
+          count: 2,
+          delay: (error, retryCount) => timer(retryCount * 1000),
+        }),
         catchError((error) =>
           this.handleError('Failed to load products by category', error, [])
         )
@@ -67,74 +76,87 @@ export class ProductService {
   getAllCategories(): Observable<string[]> {
     return this.http.get<string[]>(`${this.baseUrl}/products/categories`).pipe(
       timeout(5000),
-      retry(2),
+      retry({
+        count: 2,
+        delay: (error, retryCount) => timer(retryCount * 1000),
+      }),
       catchError((error) =>
         this.handleError('Failed to load categories', error, [])
       )
     );
   }
 
-  // POST: Add a new product
+  // POST: Add a new product (⚠️ Not supported in free tier)
   addProduct(product: Omit<Product, 'id'>): Observable<Product> {
     if (!this.isValidProduct(product)) {
       return throwError(() => new Error('Invalid product data'));
     }
 
+    console.warn(
+      '⚠️ Note: FakeStoreAPI free tier does not support adding products.'
+    );
+
     return this.http.post<Product>(`${this.baseUrl}/products`, product).pipe(
       timeout(5000),
-      retry(2),
-      catchError((error) => this.handleError('Failed to add product', error))
+      retry({
+        count: 2,
+        delay: (error, retryCount) => timer(retryCount * 1000),
+      }),
+      catchError((error) => {
+        const msg =
+          '❌ Failed to add product. FakeStoreAPI free tier does not support POST /products.';
+        console.error(msg, error);
+        return throwError(() => new Error(msg));
+      })
     );
   }
 
-  // PUT: Update a product
+  // PUT: Update a product (⚠️ Not supported in free tier)
   updateProduct(id: number, product: Partial<Product>): Observable<Product> {
     if (!id || id <= 0) {
       return throwError(() => new Error('Invalid product ID'));
     }
 
+    console.warn(
+      '⚠️ Note: FakeStoreAPI free tier does not support updating products.'
+    );
+
     return this.http
       .put<Product>(`${this.baseUrl}/products/${id}`, product)
       .pipe(
         timeout(5000),
-        retry(2),
+        retry({
+          count: 2,
+          delay: (error, retryCount) => timer(retryCount * 1000),
+        }),
         catchError((error) =>
           this.handleError('Failed to update product', error)
         )
       );
   }
 
-  // DELETE: Delete a product
-  deleteProduct(id: number): Observable<boolean> {
+  // DELETE: Delete a product (⚠️ Not supported in free tier)
+  deleteProduct(id: number): Observable<Product> {
+    // ✅ تغيير النوع إلى Product
     if (!id || id <= 0) {
       return throwError(() => new Error('Invalid product ID'));
     }
 
-    return this.http.delete<boolean>(`${this.baseUrl}/products/${id}`).pipe(
+    console.warn(
+      '⚠️ Note: FakeStoreAPI free tier does not support deleting products.'
+    );
+
+    return this.http.delete<Product>(`${this.baseUrl}/products/${id}`).pipe(
       timeout(5000),
-      retry(2),
-      map(() => true), // Convert to boolean
-      catchError((error) =>
-        this.handleError('Failed to delete product', error, false)
-      )
+      retry({
+        count: 2,
+        delay: (error, retryCount) => timer(retryCount * 1000),
+      }),
+      catchError((error) => this.handleError('Failed to delete product', error))
     );
   }
 
-  // PATCH: Partial update (if supported by API)
-  patchProduct(id: number, updates: Partial<Product>): Observable<Product> {
-    if (!id || id <= 0) {
-      return throwError(() => new Error('Invalid product ID'));
-    }
-
-    return this.http
-      .patch<Product>(`${this.baseUrl}/products/${id}`, updates)
-      .pipe(
-        timeout(5000),
-        catchError((error) =>
-          this.handleError('Failed to partially update product', error)
-        )
-      );
-  }
+  // ⚠️ إزالة patchProduct لأنها غير مستخدمة في FakeStoreAPI
 
   // البحث في المنتجات (عميل)
   searchProducts(products: Product[], query: string): Product[] {

@@ -1,42 +1,28 @@
 <!-- header.component.html -->
 <nav
   class="hidden md:flex items-center justify-center fixed top-0 left-0 right-0 h-16 bg-emerald-800 text-white shadow-lg z-50 px-4"
-  role="navigation"
-  aria-label="Main navigation"
->
-  <a
-    routerLink="/"
-    routerLinkActive="text-emerald-200 border-b-2 border-emerald-300 font-semibold"
+  role="navigation" aria-label="Main navigation">
+  <a routerLink="/" routerLinkActive="text-emerald-200 border-b-2 border-emerald-300 font-semibold"
     [routerLinkActiveOptions]="{ exact: true }"
-    class="flex items-center space-x-1 px-3 py-2 rounded transition-all duration-200 hover:bg-emerald-700 hover:text-emerald-100"
-  >
+    class="flex items-center space-x-1 px-3 py-2 rounded transition-all duration-200 hover:bg-emerald-700 hover:text-emerald-100">
     <i class="fas fa-home"></i>
     <span>Home</span>
   </a>
 
-  <a
-    routerLink="/products"
-    routerLinkActive="text-emerald-200 border-b-2 border-emerald-300 font-semibold"
-    class="flex items-center space-x-1 px-3 py-2 rounded transition-all duration-200 hover:bg-emerald-700 hover:text-emerald-100"
-  >
+  <a routerLink="/products" routerLinkActive="text-emerald-200 border-b-2 border-emerald-300 font-semibold"
+    class="flex items-center space-x-1 px-3 py-2 rounded transition-all duration-200 hover:bg-emerald-700 hover:text-emerald-100">
     <i class="fas fa-shopping-bag"></i>
     <span>Products</span>
   </a>
 
-  <a
-    routerLink="/categories"
-    routerLinkActive="text-emerald-200 border-b-2 border-emerald-300 font-semibold"
-    class="flex items-center space-x-1 px-3 py-2 rounded transition-all duration-200 hover:bg-emerald-700 hover:text-emerald-100"
-  >
+  <a routerLink="/categories" routerLinkActive="text-emerald-200 border-b-2 border-emerald-300 font-semibold"
+    class="flex items-center space-x-1 px-3 py-2 rounded transition-all duration-200 hover:bg-emerald-700 hover:text-emerald-100">
     <i class="fas fa-tags"></i>
     <span>Categories</span>
   </a>
 
-  <a
-    routerLink="/about"
-    routerLinkActive="text-emerald-200 border-b-2 border-emerald-300 font-semibold"
-    class="flex items-center space-x-1 px-3 py-2 rounded transition-all duration-200 hover:bg-emerald-700 hover:text-emerald-100"
-  >
+  <a routerLink="/about" routerLinkActive="text-emerald-200 border-b-2 border-emerald-300 font-semibold"
+    class="flex items-center space-x-1 px-3 py-2 rounded transition-all duration-200 hover:bg-emerald-700 hover:text-emerald-100">
     <i class="fas fa-info-circle"></i>
     <span>About</span>
   </a>

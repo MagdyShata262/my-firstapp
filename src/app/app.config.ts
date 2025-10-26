@@ -1,35 +1,42 @@
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideClientHydration } from '@angular/platform-browser';
+import { provideHttpClient, withFetch } from '@angular/common/http';
 import { provideStore } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
+import { routerReducer, provideRouterStore } from '@ngrx/router-store';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
-import { provideRouterStore, routerReducer } from '@ngrx/router-store';
-
 import { routes } from './app.routes';
-import { provideHttpClient, withFetch } from '@angular/common/http';
+import { productsReducer } from './store/products.reducer';
+import { ProductsEffects } from './store/products.effects';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     provideClientHydration(),
-    provideHttpClient(
-      withFetch() // استخدام fetch API بدلاً من XMLHttpRequest (اختياري)
-      // withInterceptors([]) // يمكنك إضافة interceptors هنا إذا احتجت
-    ),
-    // تكوين NgRx
+    provideHttpClient(withFetch()),
+
+    // ✅ NgRx Store
     provideStore({
-      router: routerReducer,
+      products: productsReducer,
+      router: routerReducer, // مفتاح "router" ضروري لـ Router Store
     }),
-    provideEffects([]),
+
+    // ✅ Effects
+    provideEffects([ProductsEffects]),
+
+    // ✅ Router Store (يجب أن يأتي بعد provideStore)
     provideRouterStore(),
+
+    // ✅ DevTools
     provideStoreDevtools({
-      maxAge: 25, // يحتفظ بـ 25 إجراء آخر
-      logOnly: false, // في production ضعه على true
+      maxAge: 25,
+      logOnly: false,
       autoPause: true,
       trace: false,
       traceLimit: 75,
+      connectInZone: true,
     }),
   ],
 };

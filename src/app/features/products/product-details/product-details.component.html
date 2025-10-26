@@ -1,62 +1,123 @@
-<!-- في قسم أزرار العمل - محسّن -->
-<div class="flex flex-col sm:flex-row gap-4 pt-6">
-  <!-- زر إضافة إلى السلة -->
+<div class="container mx-auto px-4 py-8">
+  <!-- زر العودة -->
   <button
-    (click)="addToCart()"
-    [disabled]="!product()"
-    class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 px-6 rounded-xl font-semibold hover:from-green-600 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl active:scale-95 flex items-center justify-center gap-2 group"
-    aria-label="Add product to shopping cart"
+    (click)="goBack()"
+    class="mb-6 flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
   >
-    <span class="text-lg transition-transform group-hover:scale-110">🛒</span>
-    <span class="font-medium">Add to Cart</span>
-  </button>
-
-  <!-- زر تعديل المنتج -->
-  <button
-    (click)="editProduct()"
-    [disabled]="!product()"
-    class="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-4 px-6 rounded-xl font-semibold hover:from-blue-600 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl active:scale-95 flex items-center justify-center gap-2 group"
-    aria-label="Edit product details"
-  >
-    <span class="text-lg transition-transform group-hover:scale-110">✏️</span>
-    <span class="font-medium">Edit Product</span>
-  </button>
-
-  <!-- زر المشاركة -->
-  <button
-    (click)="shareProduct()"
-    [disabled]="!product()"
-    class="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-4 px-6 rounded-xl font-semibold hover:from-indigo-600 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl active:scale-95 flex items-center justify-center gap-2 group"
-    aria-label="Share product"
-  >
-    <span class="text-lg transition-transform group-hover:scale-110">📤</span>
-    <span class="font-medium">Share</span>
-  </button>
-</div>
-
-<!-- زر المفضلة الإضافي -->
-<div class="flex justify-center mt-4" *ngIf="product()">
-  <button
-    (click)="toggleFavorite()"
-    [class.text-red-500]="isFavorite()"
-    [class.text-gray-400]="!isFavorite()"
-    class="p-3 rounded-full hover:bg-gray-100 transition-all duration-300 group"
-    aria-label="Toggle favorite"
-  >
-    <svg
-      class="w-6 h-6 transition-transform group-hover:scale-110"
-      [class.fill-current]="isFavorite()"
-      [class.stroke-current]="!isFavorite()"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         stroke-linecap="round"
         stroke-linejoin="round"
         stroke-width="2"
-        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-      />
+        d="M10 19l-7-7m0 0l7-7m-7 7h18"
+      ></path>
     </svg>
+    Back to Products
   </button>
+
+  <!-- حالة التحميل -->
+  <div *ngIf="loading$ | async" class="text-center py-12">
+    <div
+      class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"
+    ></div>
+    <p class="text-gray-600 mt-4">Loading product details...</p>
+  </div>
+
+  <!-- رسالة خطأ -->
+  <div
+    *ngIf="error$ | async as errorMsg"
+    class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6"
+  >
+    <h3 class="text-red-800 font-semibold">Error</h3>
+    <p class="text-red-600">{{ errorMsg }}</p>
+    <button (click)="goBack()" class="mt-4 text-blue-600 hover:underline">
+      Go back
+    </button>
+  </div>
+
+  <!-- تفاصيل المنتج -->
+  <div
+    *ngIf="!(loading$ | async) && (product$ | async) as product"
+    class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden"
+  >
+    <div class="md:flex">
+      <!-- صورة المنتج -->
+      <div class="md:w-1/2 p-6 flex items-center justify-center">
+        <img
+          [src]="
+            product.image || 'https://fakestoreapi.com/img/placeholder.jpg'
+          "
+          [alt]="product.title"
+          (error)="
+            product.image = 'https://fakestoreapi.com/img/placeholder.jpg'
+          "
+          class="max-w-full h-auto rounded-lg shadow-sm"
+        />
+      </div>
+
+      <!-- معلومات المنتج -->
+      <div class="md:w-1/2 p-6">
+        <span
+          class="inline-block bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full mb-3"
+        >
+          {{ product.category }}
+        </span>
+
+        <h1 class="text-2xl font-bold text-gray-900 mb-3">
+          {{ product.title }}
+        </h1>
+
+        <p class="text-gray-600 mb-4 leading-relaxed">
+          {{ product.description }}
+        </p>
+
+        <!-- التقييم -->
+        <div *ngIf="product.rating" class="flex items-center gap-2 mb-4">
+          <div class="flex">
+            <span
+              *ngFor="let star of getStars(product.rating.rate)"
+              [class]="getStarClass(star.type)"
+              class="text-lg"
+            >
+              {{ getStarIcon(star.type) }}
+            </span>
+          </div>
+          <span class="text-sm text-gray-600">
+            {{ product.rating.rate }} ({{ product.rating.count }} reviews)
+          </span>
+        </div>
+
+        <!-- السعر -->
+        <div class="text-2xl font-bold text-green-600 mb-6">
+          {{ product.price | currency : "USD" }}
+        </div>
+
+        <!-- أزرار الإجراءات -->
+        <div class="flex gap-3">
+          <button
+            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors"
+          >
+            Add to Cart
+          </button>
+          <button
+            class="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <svg
+              class="w-5 h-5 text-red-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+              ></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

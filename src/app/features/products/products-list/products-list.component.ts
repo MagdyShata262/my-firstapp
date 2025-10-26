@@ -1,16 +1,12 @@
-import {
-  Component,
-  inject,
-  OnInit,
-  OnDestroy,
-  signal,
-  computed,
-} from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, RouterModule } from '@angular/router';
-import { ProductsStore } from '../../../store/products.store';
+import { Store } from '@ngrx/store';
+import { Observable, combineLatest, map, take } from 'rxjs';
 import { Product } from '../../../shared/models';
+import * as ProductsActions from '../../../store/products.actions';
+import * as ProductsSelectors from '../../../store/products.selectors';
 
 @Component({
   selector: 'app-products-list',
@@ -19,17 +15,16 @@ import { Product } from '../../../shared/models';
   templateUrl: './products-list.component.html',
   styleUrl: './products-list.component.scss',
 })
-export class ProductsListComponent implements OnInit, OnDestroy {
-  // حقن متجر المنتجات
-  productsStore = inject(ProductsStore);
+export class ProductsListComponent implements OnInit {
+  [x: string]: any;
+  private store = inject(Store);
 
-  // إشارات للمكون
+  // Signals for UI state
   showAddProductModal = signal(false);
   selectedProduct = signal<Product | null>(null);
-  isLoading = signal(false);
   operationInProgress = signal<number | null>(null);
 
-  // منتج جديد للنموذج
+  // New product form
   newProduct: Omit<Product, 'id'> = {
     title: '',
     price: 0,
@@ -38,86 +33,106 @@ export class ProductsListComponent implements OnInit, OnDestroy {
     image: '',
   };
 
-  // حسابات مشتقة محسنة
-  displayRange = computed(() => {
-    const currentPage = this.productsStore.currentPage();
-    const pageSize = this.productsStore.pageSize();
-    const totalItems = this.productsStore.sortedProducts().length;
+  // Observables from store
+  products$ = this.store.select(ProductsSelectors.selectPaginatedProducts);
+  allProducts$ = this.store.select(ProductsSelectors.selectAllProducts);
+  sortedProducts$ = this.store.select(ProductsSelectors.selectSortedProducts);
+  loading$ = this.store.select(ProductsSelectors.selectLoading);
+  error$ = this.store.select(ProductsSelectors.selectError);
+  categories$ = this.store.select(ProductsSelectors.selectCategories);
+  searchQuery$ = this.store.select(ProductsSelectors.selectSearchQuery);
+  selectedCategory$ = this.store.select(
+    ProductsSelectors.selectSelectedCategory
+  );
+  currentPage$ = this.store.select(ProductsSelectors.selectCurrentPage);
+  pageSize$ = this.store.select(ProductsSelectors.selectPageSize);
+  totalPages$ = this.store.select(ProductsSelectors.selectTotalPages);
+  favorites$ = this.store.select(ProductsSelectors.selectFavorites);
+  selectedProducts$ = this.store.select(
+    ProductsSelectors.selectSelectedProducts
+  );
+  productStats$ = this.store.select(ProductsSelectors.selectProductsStats);
+  selectionStats$ = this.store.select(ProductsSelectors.selectSelectionStats);
+  currentSortValue$ = this.store.select(
+    ProductsSelectors.selectCurrentSortValue
+  );
 
-    const start = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-    const end = Math.min(currentPage * pageSize, totalItems);
+  // Derived UI observables
+  displayRange$ = this.store.select(ProductsSelectors.selectDisplayRange);
 
-    return { start, end, total: totalItems };
-  });
+  visiblePages$ = combineLatest([this.currentPage$, this.totalPages$]).pipe(
+    map(([currentPage, totalPages]) => {
+      if (totalPages <= 1) return [1];
 
-  visiblePages = computed(() => {
-    const currentPage = this.productsStore.currentPage();
-    const totalPages = this.productsStore.totalPages();
+      const delta = 2;
+      const range: number[] = [];
+      const rangeWithDots: (number | string)[] = [];
 
-    if (totalPages <= 1) return [1];
+      for (
+        let i = Math.max(2, currentPage - delta);
+        i <= Math.min(totalPages - 1, currentPage + delta);
+        i++
+      ) {
+        range.push(i);
+      }
 
-    const delta = 2;
-    const range: number[] = [];
-    const rangeWithDots: (number | string)[] = [];
+      if (currentPage - delta > 2) {
+        rangeWithDots.push(1, '...');
+      } else {
+        rangeWithDots.push(1);
+      }
 
-    for (
-      let i = Math.max(2, currentPage - delta);
-      i <= Math.min(totalPages - 1, currentPage + delta);
-      i++
-    ) {
-      range.push(i);
-    }
+      rangeWithDots.push(...range);
 
-    if (currentPage - delta > 2) {
-      rangeWithDots.push(1, '...');
-    } else {
-      rangeWithDots.push(1);
-    }
+      if (currentPage + delta < totalPages - 1) {
+        rangeWithDots.push('...', totalPages);
+      } else if (totalPages > 1) {
+        rangeWithDots.push(totalPages);
+      }
 
-    rangeWithDots.push(...range);
+      return rangeWithDots;
+    })
+  );
 
-    if (currentPage + delta < totalPages - 1) {
-      rangeWithDots.push('...', totalPages);
-    } else if (totalPages > 1) {
-      rangeWithDots.push(totalPages);
-    }
-
-    return rangeWithDots;
-  });
-
-  // إحصائيات سريعة
-  quickStats = computed(() => {
-    const stats = this.productsStore.productStats();
-    const selectedCount = this.productsStore.selectionStats().count;
-
-    return {
+  quickStats$ = combineLatest([this.productStats$, this.selectionStats$]).pipe(
+    map(([stats, selectionStats]) => ({
       ...stats,
-      selectedCount,
-      hasSelection: selectedCount > 0,
-    };
-  });
+      selectedCount: selectionStats.count,
+      hasSelection: selectionStats.count > 0,
+    }))
+  );
 
+  shouldShowPagination$ = combineLatest([
+    this.totalPages$,
+    this.products$,
+  ]).pipe(
+    map(
+      ([totalPages, products]) => totalPages > 1 && (products?.length ?? 0) > 0
+    )
+  );
+
+  // ✅ أضف observable operationInProgress$ المفقود
+  operationInProgress$ = this.store
+    .select(ProductsSelectors.selectLoading)
+    .pipe(map((loading) => (loading ? -1 : null)));
   ngOnInit() {
-    console.log('ProductsListComponent initialized');
+    this.store.dispatch(ProductsActions.loadProducts());
+    this.store.dispatch(ProductsActions.loadCategories());
   }
 
-  ngOnDestroy() {
-    // تنظيف أي اشتراكات أو مهلة زمنية
-  }
-
-  // البحث مع تحسين الأداء
+  // === Event Handlers ===
   onSearch(event: Event): void {
     const query = (event.target as HTMLInputElement).value;
-    this.productsStore.searchProducts(query);
+    this.store.dispatch(ProductsActions.setSearchQuery({ query }));
   }
 
-  // تغيير التصنيف
   onCategoryChange(event: Event): void {
     const category = (event.target as HTMLSelectElement).value;
-    this.productsStore.setCategory(category || null);
+    this.store.dispatch(
+      ProductsActions.setSelectedCategory({ category: category || null })
+    );
   }
 
-  // تغيير الترتيب
   onSortChange(event: Event): void {
     const sortValue = (event.target as HTMLSelectElement).value;
     let sortBy: keyof Product | null = null;
@@ -126,11 +141,9 @@ export class ProductsListComponent implements OnInit, OnDestroy {
     switch (sortValue) {
       case 'title':
         sortBy = 'title';
-        ascending = true;
         break;
       case 'price':
         sortBy = 'price';
-        ascending = true;
         break;
       case 'price-desc':
         sortBy = 'price';
@@ -138,108 +151,97 @@ export class ProductsListComponent implements OnInit, OnDestroy {
         break;
       case 'category':
         sortBy = 'category';
-        ascending = true;
         break;
       default:
         sortBy = null;
     }
 
-    this.productsStore.setSort(sortBy, ascending);
+    this.store.dispatch(ProductsActions.setSortBy({ sortBy, ascending }));
   }
 
-  // تغيير حجم الصفحة
   onPageSizeChange(event: Event): void {
     const size = +(event.target as HTMLSelectElement).value;
-    this.productsStore.setPageSize(Math.max(1, size));
+    this.store.dispatch(
+      ProductsActions.setPageSize({ size: Math.max(1, size) })
+    );
   }
 
-  // تحديث المنتجات مع حالة تحميل
   refreshProducts(): void {
-    this.isLoading.set(true);
-    this.productsStore.loadProducts();
+    this.store.dispatch(ProductsActions.refreshProducts());
   }
 
-  // مسح جميع الفلاتر
   clearAllFilters(): void {
-    this.productsStore.clearFilters();
+    this.store.dispatch(ProductsActions.clearFilters());
   }
 
-  // عرض تفاصيل المنتج
   viewProductDetails(product: Product): void {
     this.selectedProduct.set(product);
-    this.productsStore.loadProduct(product.id);
+    this.store.dispatch(ProductsActions.loadProduct({ id: product.id }));
   }
 
-  // تعديل المنتج
   editProduct(product: Product): void {
     this.selectedProduct.set(product);
-    console.log('Edit product:', product);
+    alert('Edit feature is simulated only (FakeStoreAPI is read-only).');
   }
 
-  // حذف المنتج مع تأكيد
   deleteProduct(id: number): void {
-    const product = this.productsStore.products().find((p) => p.id === id);
-    const productName = product?.title || 'this product';
+    this.allProducts$.pipe(take(1)).subscribe((products) => {
+      const product = products.find((p) => p.id === id);
+      const name = product?.title || 'this product';
 
-    if (
-      confirm(
-        `Are you sure you want to delete "${productName}"? This action cannot be undone.`
-      )
-    ) {
-      this.operationInProgress.set(id);
-      this.productsStore.deleteProduct(id);
-    }
+      if (confirm(`Are you sure you want to delete "${name}"?`)) {
+        this.operationInProgress.set(id);
+        this.store.dispatch(ProductsActions.deleteProduct({ id }));
+      }
+    });
   }
 
-  // إضافة إلى السلة
   addToCart(product: Product): void {
-    console.log('Add to cart:', product);
+    alert(`"${product.title}" added to cart (simulated).`);
   }
 
-  // إدارة المفضلة
   toggleFavorite(productId: number): void {
-    this.productsStore.toggleFavorite(productId);
+    this.store.dispatch(ProductsActions.toggleFavorite({ productId }));
   }
 
-  isFavorite(productId: number): boolean {
-    return this.productsStore.isFavorite(productId);
+  isFavorite(productId: number): Observable<boolean> {
+    return this.store.select(ProductsSelectors.selectIsFavorite(productId));
   }
 
-  // إدارة التحديد الجماعي
   toggleProductSelection(productId: number): void {
-    this.productsStore.toggleProductSelection(productId);
+    this.store.dispatch(ProductsActions.toggleProductSelection({ productId }));
   }
 
   selectAllInPage(): void {
-    this.productsStore.selectAllProducts();
+    this.store.dispatch(ProductsActions.selectAllProducts());
   }
 
   clearSelection(): void {
-    this.productsStore.clearSelection();
+    this.store.dispatch(ProductsActions.clearSelection());
   }
 
-  isProductSelected(productId: number): boolean {
-    return this.productsStore.isProductSelected(productId);
+  isProductSelected(productId: number): Observable<boolean> {
+    return this.store.select(
+      ProductsSelectors.selectIsProductSelected(productId)
+    );
   }
 
-  // حذف المنتجات المحددة
   deleteSelectedProducts(): void {
-    const selectedCount = this.productsStore.selectionStats().count;
-    if (selectedCount === 0) return;
+    this.selectionStats$.pipe(take(1)).subscribe((stats) => {
+      if (stats.count === 0) return;
 
-    if (
-      confirm(
-        `Are you sure you want to delete ${selectedCount} selected products? This action cannot be undone.`
-      )
-    ) {
-      this.productsStore.bulkDeleteProducts();
-    }
+      if (confirm(`Delete ${stats.count} selected products?`)) {
+        alert('Bulk delete simulated (FakeStoreAPI is read-only).');
+        this.store.dispatch(ProductsActions.clearSelection());
+      }
+    });
   }
 
-  // إرسال نموذج إضافة منتج
   onAddProductSubmit(): void {
     if (this.isValidProduct()) {
-      this.productsStore.addProduct(this.newProduct);
+      this.store.dispatch(
+        ProductsActions.addProduct({ product: this.newProduct })
+      );
       this.showAddProductModal.set(false);
       this.resetNewProductForm();
     } else {
@@ -247,19 +249,6 @@ export class ProductsListComponent implements OnInit, OnDestroy {
     }
   }
 
-  // التحقق من صحة المنتج
-  isValidProduct(): boolean {
-    const product = this.newProduct;
-    return (
-      !!product.title?.trim() &&
-      !!product.description?.trim() &&
-      !!product.category?.trim() &&
-      !!product.image?.trim() &&
-      product.price > 0
-    );
-  }
-
-  // إعادة تعيين نموذج المنتج الجديد
   resetNewProductForm(): void {
     this.newProduct = {
       title: '',
@@ -270,20 +259,20 @@ export class ProductsListComponent implements OnInit, OnDestroy {
     };
   }
 
-  // الحصول على النجوم للتقييم مع تحسينات
+  // === UI Helpers ===
   getStars(
     rating: number
   ): { type: 'full' | 'half' | 'empty'; index: number }[] {
     const stars: { type: 'full' | 'half' | 'empty'; index: number }[] = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
+    const full = Math.floor(rating);
+    const hasHalf = rating % 1 >= 0.5;
 
-    for (let i = 0; i < fullStars; i++) {
+    for (let i = 0; i < full; i++) {
       stars.push({ type: 'full', index: i });
     }
 
-    if (hasHalfStar) {
-      stars.push({ type: 'half', index: fullStars });
+    if (hasHalf) {
+      stars.push({ type: 'half', index: full });
     }
 
     while (stars.length < 5) {
@@ -293,58 +282,47 @@ export class ProductsListComponent implements OnInit, OnDestroy {
     return stars.slice(0, 5);
   }
 
-  // الحصول على فئة CSS للنجمة
-  getStarClass(starType: 'full' | 'half' | 'empty'): string {
-    switch (starType) {
-      case 'full':
-        return 'text-yellow-400';
-      case 'half':
-        return 'text-yellow-400';
-      case 'empty':
-        return 'text-gray-300';
-      default:
-        return 'text-gray-300';
-    }
+  getStarClass(type: 'full' | 'half' | 'empty'): string {
+    return type === 'empty' ? 'text-gray-300' : 'text-yellow-400';
   }
 
-  // الحصول على أيقونة النجمة
-  getStarIcon(starType: 'full' | 'half' | 'empty'): string {
-    switch (starType) {
-      case 'full':
-        return '★';
-      case 'half':
-        return '½';
-      case 'empty':
-        return '☆';
-      default:
-        return '☆';
-    }
+  getStarIcon(type: 'full' | 'half' | 'empty'): string {
+    return type === 'full' ? '★' : type === 'half' ? '½' : '☆';
   }
 
-  // إغلاق تفاصيل المنتج
   closeProductDetails(): void {
     this.selectedProduct.set(null);
-    this.productsStore.clearSelectedProduct();
+    this.store.dispatch(ProductsActions.clearSelectedProduct());
   }
 
-  // التنقل بين الصفحات
   goToPage(page: number | string): void {
     if (typeof page === 'number') {
-      this.productsStore.setPage(page);
+      this.store.dispatch(ProductsActions.setCurrentPage({ page }));
     }
   }
 
-  // الصفحة التالية
   nextPage(): void {
-    this.productsStore.nextPage();
+    combineLatest([this.currentPage$, this.totalPages$])
+      .pipe(take(1))
+      .subscribe(([currentPage, totalPages]) => {
+        if (currentPage < totalPages) {
+          this.store.dispatch(
+            ProductsActions.setCurrentPage({ page: currentPage + 1 })
+          );
+        }
+      });
   }
 
-  // الصفحة السابقة
   previousPage(): void {
-    this.productsStore.previousPage();
+    this.currentPage$.pipe(take(1)).subscribe((currentPage) => {
+      if (currentPage > 1) {
+        this.store.dispatch(
+          ProductsActions.setCurrentPage({ page: currentPage - 1 })
+        );
+      }
+    });
   }
 
-  // فتح/إغلاق modal
   openAddProductModal(): void {
     this.showAddProductModal.set(true);
   }
@@ -354,14 +332,63 @@ export class ProductsListComponent implements OnInit, OnDestroy {
     this.resetNewProductForm();
   }
 
-  // تعبئة نموذج سريعة للاختبار
   prefillForm(): void {
     this.newProduct = {
-      title: 'New Product',
-      price: 99.99,
-      description: 'This is a new product description',
+      title: 'Wireless Headphones',
+      price: 89.99,
+      description: 'High-quality wireless headphones with noise cancellation.',
       category: 'electronics',
-      image: 'https://via.placeholder.com/150',
+      image: 'https://fakestoreapi.com/img/61IBBVJvSDL._AC_SY879_.jpg',
     };
+  }
+
+  hasNextPage(): Observable<boolean> {
+    return combineLatest([this.currentPage$, this.totalPages$]).pipe(
+      map(([page, total]) => page < total)
+    );
+  }
+
+  hasPreviousPage(): Observable<boolean> {
+    return this.currentPage$.pipe(map((page) => page > 1));
+  }
+
+  private isValidImageUrl(url: string): boolean {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  isValidProduct(): boolean {
+    const p = this.newProduct;
+    return !!(
+      p.title?.trim() &&
+      p.description?.trim() &&
+      p.category?.trim() &&
+      p.image?.trim() &&
+      this.isValidImageUrl(p.image) &&
+      p.price > 0
+    );
+  }
+
+  // === TrackBy Functions ===
+  trackByCategory(index: number, category: string): string {
+    return category;
+  }
+
+  trackByProductId(index: number, product: Product): number {
+    return product.id;
+  }
+
+  trackByIndex(index: number): number {
+    return index;
+  }
+
+  // === Image Error Handling ===
+  handleImageError(event: Event, product: Product): void {
+    const imgElement = event.target as HTMLImageElement;
+    imgElement.src = 'https://fakestoreapi.com/img/placeholder.jpg';
   }
 }
