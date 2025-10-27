@@ -1,0 +1,147 @@
+<!-- features/cart/cart.component.html -->
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold text-gray-900 mb-6">Shopping Cart</h1>
+
+  <!-- حالة التحميل -->
+  <div *ngIf="loading$ | async" class="text-center py-12">
+    <div
+      class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"
+    ></div>
+    <p class="text-gray-600 mt-4">Loading cart...</p>
+  </div>
+
+  <!-- رسالة خطأ -->
+  <div
+    *ngIf="error$ | async as errorMsg"
+    class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6"
+  >
+    <h3 class="text-red-800 font-semibold">Error</h3>
+    <p class="text-red-600">{{ errorMsg }}</p>
+    <button (click)="loadCart()" class="mt-4 text-blue-600 hover:underline">
+      Try again
+    </button>
+  </div>
+
+  <!-- السلة فارغة -->
+  <div *ngIf="isEmpty$ | async" class="text-center py-12">
+    <svg
+      class="w-24 h-24 text-gray-300 mx-auto mb-4"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="1"
+        d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0H4m16 0h-4m-4 0H8"
+      ></path>
+    </svg>
+    <h3 class="text-xl font-semibold text-gray-600 mb-2">Your cart is empty</h3>
+    <p class="text-gray-500 mb-6">Add some products to your cart.</p>
+    <a
+      routerLink="/products"
+      class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+    >
+      Browse Products
+    </a>
+  </div>
+
+  <!-- عرض المنتجات في السلة -->
+  <div
+    *ngIf="!(isEmpty$ | async)"
+    class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden"
+  >
+    <div class="p-6">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">
+        Your Items ({{ totalItems$ | async }})
+      </h2>
+
+      <div class="space-y-4">
+        <div
+          *ngFor="let item of items$ | async"
+          class="flex items-center gap-4 p-4 border border-gray-200 rounded-lg"
+        >
+          <!-- صورة المنتج (مؤقتًا نستخدم placeholder) -->
+          <img
+            src="https://via.placeholder.com/60"
+            alt="Product"
+            class="w-12 h-12 object-cover rounded"
+          />
+
+          <div class="flex-1">
+            <h3 class="font-medium text-gray-900">
+              Product #{{ item.productId }}
+            </h3>
+            <p class="text-sm text-gray-600">Qty: {{ item.quantity }}</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button
+              (click)="updateQuantity(item.productId, item.quantity - 1)"
+              [disabled]="item.quantity <= 1"
+              class="px-2 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+            >
+              -
+            </button>
+            <span class="w-8 text-center">{{ item.quantity }}</span>
+            <button
+              (click)="updateQuantity(item.productId, item.quantity + 1)"
+              class="px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
+            >
+              +
+            </button>
+          </div>
+
+          <button
+            (click)="removeFromCart(item.productId)"
+            class="text-red-600 hover:text-red-800"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              ></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div
+        class="mt-6 pt-6 border-t border-gray-200 flex justify-between items-center"
+      >
+        <div>
+          <div class="text-xl font-bold text-gray-900">
+            Total: ${{ 0 }}
+            <!-- مؤقتًا -->
+          </div>
+          <div class="text-sm text-gray-600">
+            Tax and shipping calculated at checkout
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button
+            (click)="clearCart()"
+            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Clear Cart
+          </button>
+          <button
+            (click)="checkout()"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+          >
+            Checkout
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

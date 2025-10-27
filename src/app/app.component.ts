@@ -4,6 +4,7 @@ import { Store } from '@ngrx/store';
 import { ProductsListComponent } from './features/products/products-list/products-list.component';
 import { HeaderComponent } from './shared/header/header.component';
 import { FooterComponent } from './shared/footer/footer.component';
+import { slideInAnimation } from '../route-animations';
 
 @Component({
   selector: 'app-root',
@@ -11,11 +12,20 @@ import { FooterComponent } from './shared/footer/footer.component';
   imports: [RouterOutlet, HeaderComponent, FooterComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
+  providers: [Store],
+  animations: [slideInAnimation],
 })
 export class AppComponent {
   title = 'my-firstapp';
   constructor(private store: Store) {
     // يمكنك الآن استخدام Store هنا
     console.log('NgRx Store جاهز للاستخدام!');
+  }
+  prepareRoute(outlet: RouterOutlet) {
+    return (
+      outlet &&
+      outlet.activatedRouteData &&
+      outlet.activatedRouteData['animation']
+    );
   }
 }

@@ -1,12 +1,13 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink, RouterModule } from '@angular/router';
+import { Router, RouterLink, RouterModule } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { Observable, combineLatest, map, take } from 'rxjs';
 import { Product } from '../../../shared/models';
 import * as ProductsActions from '../../../store/products.actions';
 import * as ProductsSelectors from '../../../store/products.selectors';
+import * as CartActions from '../../../store/cart-state/cart.actions';
 
 @Component({
   selector: 'app-products-list',
@@ -18,6 +19,7 @@ import * as ProductsSelectors from '../../../store/products.selectors';
 export class ProductsListComponent implements OnInit {
   [x: string]: any;
   private store = inject(Store);
+  private router = inject(Router);
 
   // Signals for UI state
   showAddProductModal = signal(false);
@@ -195,11 +197,32 @@ export class ProductsListComponent implements OnInit {
       }
     });
   }
-
   addToCart(product: Product): void {
-    alert(`"${product.title}" added to cart (simulated).`);
-  }
+    this.store.dispatch(
+      CartActions.addToCart({
+        userId: 1,
+        productId: product.id,
+        quantity: 1,
+      })
+    );
 
+    // اختياري: عرض رسالة سريعة (أو تأجيل الانتقال)
+    setTimeout(() => {
+      this.router.navigate(['/cart']);
+    }, 300); // 300ms يسمح بعرض الرسالة وبدء الانتقال بسلاسة
+  }
+  // addToCart(product: Product): void {
+  //   alert(`"${product.title}" added to cart (simulated).`);
+  // }
+  //  addToCart(product: Product): void {
+  //     this.store.dispatch(
+  //       CartActions.addToCart({
+  //         userId: 1, // لاحقًا: من authService
+  //         productId: product.id,
+  //         quantity: 1,
+  //       })
+  //     );
+  //   }
   toggleFavorite(productId: number): void {
     this.store.dispatch(ProductsActions.toggleFavorite({ productId }));
   }

@@ -5,9 +5,16 @@
   <app-header />
   <main class="flex-1 py-8">
     <!-- ← هذا هو العنصر الذي يحتوي على router-outlet -->
-    <div class="container mx-auto px-4">
-      <router-outlet></router-outlet>
+    <div
+      [@routeAnimations]="prepareRoute(outlet)"
+      class="container mx-auto px-4"
+    >
+      <router-outlet #outlet="outlet"></router-outlet>
     </div>
   </main>
   <app-footer />
 </div>
+
+<!-- <main [@routeAnimations]="prepareRoute(outlet)" class="min-h-screen pt-16">
+  <router-outlet #outlet="outlet"></router-outlet>
+</main> -->

@@ -1,5 +1,5 @@
 import { createAction, props } from '@ngrx/store';
-import { Product } from '../shared/models';
+import { Product } from '../shared/models/index';
 
 // === تحميل المنتجات ===
 export const loadProducts = createAction('[Products] Load Products');
